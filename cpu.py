@@ -12,6 +12,9 @@ class CPU:
         self.register = [0] * 8
         self.pc = 0
         self.stack_pointer = 7
+        self.E = 0  # equals flag
+        self.L = 0  # less than flag
+        self.G = 0  # greater than flag
         self.command = {
             "HLT":  0b00000001,
             "PRN":  0b01000111,
@@ -22,6 +25,12 @@ class CPU:
             "POP":  0b01000110,
             "SUB":  0b10100001,
             "DIV":  0b10100011,
+            "JMP":  0b01010100,
+            "JEQ":  0b01010101,
+            "JNE":  0b01010110,
+            "CALL": 0b01010000,
+            "RET":  0b00010001,
+            "CMP":  0b10100111,
         }
 
     def load(self):
@@ -73,6 +82,13 @@ class CPU:
             self.register[reg_a] *= self.register[reg_b]
         elif op == "DIV":
             self.register[reg_a] /= self.register[reg_b]
+        elif op == "CMP":
+            if self.register[reg_a] == self.register[reg_b]:
+                self.E == 1
+            elif self.register[reg_a] < self.register[reg_b]:
+                self.L == 1
+            elif self.register[reg_a] > self.register[reg_b]:
+                self.G == 1
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -145,6 +161,31 @@ class CPU:
                 self.stack_pointer += 1
                 self.pc += 2
 
+            elif command == self.command["CMP"]:
+                val1 = self.ram[self.pc + 1]
+                val2 = self.ram[self.pc + 2]
+
+                self.alu("CMP", val1, val2)
+                self.pc += 3
+
+            elif command == self.command["JMP"]:
+                val1 = self.ram[self.pc + 1]
+                self.pc = self.register[val1]
+
+            elif command == self.command["JEQ"]:
+                if self.E == 1:
+                    val1 = self.ram[self.pc + 1]
+                    self.pc = self.register[val1]
+                else:
+                    self.pc += 2
+
+            elif command == self.command["JNE"]:
+                if self.E == 0:
+                    val1 = self.ram[self.pc + 1]
+                    self.pc = self.register[val1]
+                else:
+                    self.pc += 2
+
             elif command == self.command["CALL"]:
                 reg1 = self.register[self.ram[self.pc + 1]]
                 self.stack_pointer -= 1
@@ -165,3 +206,7 @@ class CPU:
 
     def ram_write(self, index, value):
         self.ram[index] = value
+
+# CMP, instruction with an equal flag?
+# JMP, instruction
+# JEQ, JNE instructions
